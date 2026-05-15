@@ -1,4 +1,4 @@
-# Status Overlay – Monitor de desempenho (PT/BR)
+# Status Overlay – Monitor de desempenho (FPS)
 
 **Status Overlay** é um overlay leve para Windows que exibe em tempo real:
 - FPS do jogo (DirectX 9/10/11/12, Vulkan e OpenGL)
@@ -16,7 +16,7 @@
 
 Todas as opções são salvas automaticamente em `config.ini`, no mesmo diretório do executável. Você pode editá‑lo manualmente, se desejar.
 
-Exemplo de seções:
+Exemplo:
 
 ```ini
 [Display]
