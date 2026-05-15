@@ -24,12 +24,7 @@
 #include <vector>
 #include <algorithm>
 #include <utility>
-
 #pragma comment(lib, "winhttp.lib")
-
-// Note: Link with -lwbemuuid -lole32 -loleaut32 for WMI support
-// Note: Link with lhwm-cpp-wrapper.lib and mscoree.lib for LibreHardwareMonitor support
-
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "lhwm-cpp-wrapper.h"
@@ -38,7 +33,7 @@
 #include "imgui_impl_dx11.h"
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Constants & safety defines
+// Defines
 // ═══════════════════════════════════════════════════════════════════════════
 #define WM_TRAYICON   (WM_USER + 1)
 #define IDM_SETTINGS  1001
@@ -48,7 +43,7 @@
 #define IDM_UPDATE    1005
 #define IDM_RESET_POS 1006
 
-// Current version
+// Versão
 #define APP_VERSION "v1.0"
 
 // Janela de config: largura externa fixa (px), altura externa mínima para redimensionamento vertical
@@ -394,16 +389,15 @@ static void ShowWelcomeMessage()
 
     MessageBoxA(
         nullptr,
-        "Bem-vindo ao FPS Overlay!\n\n"
-        "Para a melhor experiência, é recomendado desabilitar outros overlays de FPS:\n\n"
+        "Bem-vindo (Welcome)!\n\n"
+        "Para a melhor experiencia, e recomendado desabilitar outros overlays de FPS:\n\n"
         "  - Steam Overlay (Steam > Config > Em Jogo)\n"
         "  - Xbox Game Bar (Config do Windows > Jogos)\n"
         "  - NVIDIA GeForce Experience Overlay/NVIDIA ShadowPlay/NVIDIA App\n"
-        "  - AMD Radeon Software Overlay\n"
-        "  - Discord Overlay\n\n"
+        "  - AMD Radeon Software Overlay\n\n"
         "Isso evita conflitos e garante leituras de FPS precisas.\n\n"
-        "Divirta-se!",
-        "FPS Overlay",
+        "By: zRaFax",
+        "StatusOverlay",
         MB_OK | MB_ICONINFORMATION | MB_TOPMOST
     );
 
