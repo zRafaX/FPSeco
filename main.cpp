@@ -88,7 +88,7 @@ static const USHORT DXGKRNL_EVENT_PRESENT_INFO = 0x00B8;  // Present::Info (184)
 static const USHORT DXGKRNL_EVENT_FLIP_INFO = 0x00A8;  // Flip::Info (168)
 static const USHORT DXGKRNL_EVENT_BLIT_INFO = 0x00A6;  // Blit::Info (166)
 
-static const char* ETW_SESSION_NAME = "FPSOverlay_ETW";
+static const char* ETW_SESSION_NAME = "FrameCansado_ETW";
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Configuração
@@ -182,7 +182,7 @@ static void InitConfigPath()
 
     // Anexa o nome do arquivo de configuração
     snprintf(g_configPath, MAX_PATH, "%sconfig.ini", exePath);
-    snprintf(g_pawnioRebootStatePath, MAX_PATH, "%sfpsoverlay-pawnio-reboot.state", exePath);
+    snprintf(g_pawnioRebootStatePath, MAX_PATH, "%sframecansado-pawnio-reboot.state", exePath);
 }
 
 static int ReadIniInt(const char* section, const char* key, int defaultVal)
@@ -230,7 +230,7 @@ static bool WritePawnIORebootPendingStateFile(const char* hex16)
     if (!hex16 || strlen(hex16) != 16) return false;
     InitConfigPath();
     char line[96];
-    snprintf(line, sizeof(line), "FPSOVERLAY_PAWNIO_REBOOT 1 %s\n", hex16);
+    snprintf(line, sizeof(line), "FRAMECANSANDO_PAWNIO_REBOOT 1 %s\n", hex16);
     const DWORD flags = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_WRITE_THROUGH;
     HANDLE h = CreateFileA(g_pawnioRebootStatePath, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS,
         flags, nullptr);
@@ -261,7 +261,7 @@ static bool ReadPawnIORebootPendingStateFile(char* hexOut, size_t cap)
     buf[rd] = '\0';
     int ver = 0;
     char hexBuf[24] = {};
-    if (sscanf_s(buf, "FPSOVERLAY_PAWNIO_REBOOT %d %23s", &ver, hexBuf, (unsigned)sizeof(hexBuf)) < 2 || ver != 1)
+    if (sscanf_s(buf, "FRAMECANSANDO_PAWNIO_REBOOT %d %23s", &ver, hexBuf, (unsigned)sizeof(hexBuf)) < 2 || ver != 1)
         return false;
     if (strlen(hexBuf) != 16) return false;
     unsigned long long v = 0;
@@ -365,43 +365,6 @@ static void LoadConfig(OverlayConfig& cfg)
         cfg.layoutStyle = LAYOUT_VERTICAL;
     if (cfg.overlayScale < 50) cfg.overlayScale = 50;
     if (cfg.overlayScale > 200) cfg.overlayScale = 200;
-}
-
-// Verifica se a mensagem de boas-vindas já foi exibida (separada da configuração)
-static bool HasWelcomeBeenShown()
-{
-    InitConfigPath();
-    return ReadIniInt("App", "welcomeShown", 0) != 0;
-}
-
-static void MarkWelcomeShown()
-{
-    InitConfigPath();
-    WriteIniInt("App", "welcomeShown", 1);
-}
-
-// Exibe mensagem de boas-vindas na primeira execução
-static void ShowWelcomeMessage()
-{
-    if (HasWelcomeBeenShown()) {
-        return;  // Já foi mostrada antes
-    }
-
-    MessageBoxA(
-        nullptr,
-        "Bem-vindo (Welcome)!\n\n"
-        "Para a melhor experiencia, e recomendado desabilitar outros overlays de FPS:\n\n"
-        "  - Steam Overlay (Steam > Config > Em Jogo)\n"
-        "  - Xbox Game Bar (Config do Windows > Jogos)\n"
-        "  - NVIDIA GeForce Experience Overlay/NVIDIA ShadowPlay/NVIDIA App\n"
-        "  - AMD Radeon Software Overlay\n\n"
-        "Isso evita conflitos e garante leituras de FPS precisas.\n\n"
-        "By: zRaFax",
-        "StatusOverlay",
-        MB_OK | MB_ICONINFORMATION | MB_TOPMOST
-    );
-
-    MarkWelcomeShown();
 }
 
 static void SaveConfig(const OverlayConfig& cfg)
@@ -510,7 +473,7 @@ static void CheckForUpdatesAsync()
         }
 
         HINTERNET hRequest = WinHttpOpenRequest(hConnect, L"GET",
-            L"/repos/zRafaX/StatusOverlay/releases/latest",
+            L"/repos/zRafaX/FrameCansado/releases/latest",
             nullptr, WINHTTP_NO_REFERER,
             WINHTTP_DEFAULT_ACCEPT_TYPES,
             WINHTTP_FLAG_SECURE);
@@ -1103,7 +1066,7 @@ static bool GetBundledPawnIOSetupVersion(DWORD* verMS, DWORD* verLS)
     char tempFile[MAX_PATH];
     if (GetTempPathA(MAX_PATH, tempPath) == 0)
         return false;
-    snprintf(tempFile, MAX_PATH, "%sFPSOverlay_PawnIO_setup_%llu.exe", tempPath,
+    snprintf(tempFile, MAX_PATH, "%sFrameCansado_PawnIO_setup_%llu.exe", tempPath,
         (unsigned long long)GetTickCount64());
     if (!WriteEmbeddedPawnIOSetupToPath(tempFile))
         return false;
@@ -1486,12 +1449,12 @@ static void ForceShowPawnIORestartRequiredDialogThenExit(const wchar_t* situatio
     _snwprintf_s(body, _TRUNCATE,
         L"%s\n\n"
         L"Importante: salve seu trabalho em outros aplicativos antes de reiniciar. Dados não salvos podem ser perdidos.\n\n"
-        L"É necessário um reinício completo do sistema antes que o FPS Overlay possa ser executado.\n\n"
-        L"Sim \u2014 reiniciar este PC agora (o FPS Overlay será fechado primeiro)\n"
-        L"Não \u2014 reiniciar mais tarde (o FPS Overlay será fechado; use Iniciar \u2192 Energia \u2192 Reiniciar quando estiver pronto)\n\n",
+        L"É necessário um reinício completo do sistema antes que o Overlay possa ser executado.\n\n"
+        L"Sim \u2014 reiniciar este PC agora (o Overlay será fechado primeiro)\n"
+        L"Não \u2014 reiniciar mais tarde (o Overlay será fechado; use Iniciar \u2192 Energia \u2192 Reiniciar quando estiver pronto)\n\n",
         situationLead ? situationLead : L"");
 
-    const int r = MessageBoxW(nullptr, body, L"FPS Overlay \u2014 Reinício necessário", kMb);
+    const int r = MessageBoxW(nullptr, body, L"Software \u2014 Reinício necessário", kMb);
 
     if (r == IDYES) {
         if (AcquireShutdownPrivilege()) {
@@ -1501,8 +1464,8 @@ static void ForceShowPawnIORestartRequiredDialogThenExit(const wchar_t* situatio
         }
         MessageBoxW(nullptr,
             L"Não foi possível iniciar um reinício automático. Reinicie seu PC manualmente "
-            L"(Iniciar \u2192 Energia \u2192 Reiniciar) e inicie o FPS Overlay novamente.",
-            L"FPS Overlay",
+            L"(Iniciar \u2192 Energia \u2192 Reiniciar) e inicie o Overlay novamente.",
+            L"Overlay",
             MB_OK | MB_ICONINFORMATION | MB_TOPMOST | MB_SETFOREGROUND | MB_SYSTEMMODAL);
     }
     ExitProcess(0);
@@ -1534,10 +1497,10 @@ static void CheckPawnIORebootGateOrExit()
     FILETIME marker = {};
     if (!ReadPawnIOInstallMarkerFileTime(&marker)) {
         ForceShowPawnIORestartRequiredDialogThenExit(
-            L"O FPS Overlay está aguardando um reinício do sistema após a instalação ou atualização do PawnIO, "
+            L"O Overlay está aguardando um reinício do sistema após a instalação ou atualização do PawnIO, "
             L"mas o marcador de reinício no config.ini está ausente ou inválido.\n\n"
             L"Se isso persistir após reiniciar o Windows, exclua PawnIORequiresReboot e "
-            L"PawnIOInstallUtcHex em [App] no config.ini e exclua fpsoverlay-pawnio-reboot.state "
+            L"PawnIOInstallUtcHex em [App] no config.ini e exclua framecansado-pawnio-reboot.state "
             L"ao lado de overlay.exe.");
         return;
     }
@@ -1558,13 +1521,13 @@ static void CheckPawnIORebootGateOrExit()
 
     if (!haveBootApprox && !haveBootWmi) {
         ForceShowPawnIORestartRequiredDialogThenExit(
-            L"O FPS Overlay não pode verificar se este PC foi reiniciado desde a instalação ou atualização do PawnIO "
+            L"O Overlay não pode verificar se este PC foi reiniciado desde a instalação ou atualização do PawnIO "
             L"(o Windows não conseguiu relatar a hora da última inicialização). Um reinício completo ainda é necessário.");
         return;
     }
 
     ForceShowPawnIORestartRequiredDialogThenExit(
-        L"Você deve reiniciar o Windows antes de usar o FPS Overlay.\n\n"
+        L"Você deve reiniciar o Windows antes de usar o Overlay.\n\n"
         L"O PawnIO foi instalado ou atualizado anteriormente e esta sessão ainda não concluiu um reinício completo do sistema.");
 }
 
@@ -1581,7 +1544,7 @@ static bool ExtractAndRunPawnIOSetup()
     char tempFile[MAX_PATH];
     if (GetTempPathA(MAX_PATH, tempPath) == 0)
         return false;
-    snprintf(tempFile, MAX_PATH, "%sFPSOverlay_PawnIO_setup_run_%llu.exe", tempPath,
+    snprintf(tempFile, MAX_PATH, "%sFrameCansado_PawnIO_setup_run_%llu.exe", tempPath,
         (unsigned long long)GetTickCount64());
     if (!WriteEmbeddedPawnIOSetupToPath(tempFile))
         return false;
@@ -1639,12 +1602,12 @@ static void EnforcePawnIOOrExit()
         if (!IsPawnIOInstalled()) {
             int r = MessageBoxW(
                 nullptr,
-                L"O driver PawnIO é necessário para o FPS Overlay.\n\n"
+                L"O driver PawnIO é necessário para o Overlay.\n\n"
                 L"O LibreHardwareMonitor o usa para temperaturas de CPU e GPU. "
                 L"O aplicativo não pode continuar sem ele.\n\n"
                 L"Clique em OK para instalar o PawnIO.\n"
                 L"Clique em Cancelar para sair.",
-                L"FPS Overlay \u2014 PawnIO necessário",
+                L"Overlay \u2014 PawnIO necessário",
                 MB_OKCANCEL | MB_ICONWARNING | MB_TOPMOST);
             if (r != IDOK)
                 ExitProcess(1);
@@ -1653,15 +1616,15 @@ static void EnforcePawnIOOrExit()
                     L"A instalação do PawnIO não foi concluída com sucesso. O instalador saiu com um erro "
                     L"(por exemplo, uma compilação existente do PawnIO deve ser removida primeiro).\n\n"
                     L"Desinstale o PawnIO em Config do Windows \u2192 Aplicativos \u2192 Aplicativos instalados e clique em OK novamente aqui.",
-                    L"FPS Overlay", MB_OK | MB_ICONERROR | MB_TOPMOST);
+                    L"Overlay", MB_OK | MB_ICONERROR | MB_TOPMOST);
                 continue;
             }
             if (!CommitPawnIORebootPendingToIni()) {
                 MessageBoxW(nullptr,
-                    L"O FPS Overlay não pôde salvar o requisito de reinicialização (config.ini ou "
-                    L"fpsoverlay-pawnio-reboot.state ao lado de overlay.exe). Verifique se a pasta pode ser gravada "
+                    L"O Overlay não pôde salvar o requisito de reinicialização (config.ini ou "
+                    L"framecansado-pawnio-reboot.state ao lado de overlay.exe). Verifique se a pasta pode ser gravada "
                     L"e tente instalar o PawnIO novamente.",
-                    L"FPS Overlay",
+                    L"Overlay",
                     MB_OK | MB_ICONERROR | MB_TOPMOST);
                 ExitProcess(1);
             }
@@ -1671,12 +1634,12 @@ static void EnforcePawnIOOrExit()
         if (IsPawnIOOutdatedVsBundled()) {
             int r = MessageBoxW(
                 nullptr,
-                L"Seu driver PawnIO é mais antigo que a versão incluída no FPS Overlay.\n\n"
+                L"Seu driver PawnIO é mais antigo que a versão incluída no Overlay.\n\n"
                 L"Um PawnIO desatualizado pode quebrar o LibreHardwareMonitor (temperaturas ausentes ou erradas). "
                 L"Você deve atualizar para continuar.\n\n"
                 L"Clique em OK para atualizar agora (substitui a instalação existente).\n"
                 L"Clique em Cancelar para sair.",
-                L"FPS Overlay \u2014 Atualização do PawnIO necessária",
+                L"Overlay \u2014 Atualização do PawnIO necessária",
                 MB_OKCANCEL | MB_ICONWARNING | MB_TOPMOST);
             if (r != IDOK)
                 ExitProcess(1);
@@ -1685,15 +1648,15 @@ static void EnforcePawnIOOrExit()
                     L"A atualização do PawnIO não foi concluída com sucesso. O instalador saiu com um erro "
                     L"(por exemplo, a versão antiga deve ser removida antes de instalar novamente).\n\n"
                     L"Desinstale o PawnIO em Config do Windows \u2192 Aplicativos \u2192 Aplicativos instalados e clique em OK novamente aqui.",
-                    L"FPS Overlay", MB_OK | MB_ICONERROR | MB_TOPMOST);
+                    L"Overlay", MB_OK | MB_ICONERROR | MB_TOPMOST);
                 continue;
             }
             if (!CommitPawnIORebootPendingToIni()) {
                 MessageBoxW(nullptr,
-                    L"O FPS Overlay não pôde salvar o requisito de reinicialização (config.ini ou "
-                    L"fpsoverlay-pawnio-reboot.state ao lado de overlay.exe). Verifique se a pasta pode ser gravada "
+                    L"O Overlay não pôde salvar o requisito de reinicialização (config.ini ou "
+                    L"framecansado-pawnio-reboot.state ao lado de overlay.exe). Verifique se a pasta pode ser gravada "
                     L"e tente atualizar o PawnIO novamente.",
-                    L"FPS Overlay",
+                    L"Overlay",
                     MB_OK | MB_ICONERROR | MB_TOPMOST);
                 ExitProcess(1);
             }
@@ -2314,7 +2277,7 @@ void AddTrayIcon()
     g_nid.hIcon = LoadIcon(g_hInstance, MAKEINTRESOURCE(1));
     if (!g_nid.hIcon)
         g_nid.hIcon = LoadIcon(nullptr, IDI_APPLICATION);
-    lstrcpy(g_nid.szTip, "Status Overlay");
+    lstrcpy(g_nid.szTip, "Frame Cansado");
     Shell_NotifyIcon(NIM_ADD, &g_nid);
 }
 
@@ -2323,10 +2286,10 @@ void RemoveTrayIcon() { Shell_NotifyIcon(NIM_DELETE, &g_nid); }
 void UpdateTrayTooltip()
 {
     if (g_updateAvailable) {
-        snprintf(g_nid.szTip, sizeof(g_nid.szTip), "Status Overlay - Update ! (%s)", g_latestVersion);
+        snprintf(g_nid.szTip, sizeof(g_nid.szTip), "Frame Cansado - Update ! (%s)", g_latestVersion);
     }
     else {
-        lstrcpy(g_nid.szTip, "Status Overlay");
+        lstrcpy(g_nid.szTip, "Frame Cansado");
     }
     Shell_NotifyIcon(NIM_MODIFY, &g_nid);
 }
@@ -2449,7 +2412,7 @@ void SwitchToOverlay()
 
     g_hwnd = CreateWindowEx(
         exStyle,
-        "FPSOverlay", "Status Overlay", WS_POPUP,
+        "FrameCansado", "Frame Cansado", WS_POPUP,
         wa.left, wa.top, w, h, nullptr, nullptr, g_hInstance, nullptr);
 
     SetLayeredWindowAttributes(g_hwnd, RGB(0, 0, 0), 255, LWA_ALPHA);
@@ -2476,7 +2439,7 @@ void SwitchToConfig()
     const int ch = 820;
     int cx = (GetSystemMetrics(SM_CXSCREEN) - kConfigDlgOuterW) / 2;
     int cy = (GetSystemMetrics(SM_CYSCREEN) - ch) / 2;
-    g_hwnd = CreateWindowEx(0, "FPSOverlay", "Status Overlay",
+    g_hwnd = CreateWindowEx(0, "FrameCansado", "Frame Cansado",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_THICKFRAME,
         cx, cy, kConfigDlgOuterW, ch, nullptr, nullptr, g_hInstance, nullptr);
 
@@ -2539,9 +2502,6 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
     // ── Verifica atualizações em segundo plano ──
     CheckForUpdatesAsync();
 
-    // ── Exibe mensagem de boas-vindas na primeira execução ──
-    ShowWelcomeMessage();
-
     // ── Consulta hardware ──
     QueryCpuName();
 
@@ -2555,14 +2515,14 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
     wc.hIcon = hIcon;
     wc.hIconSm = hIcon;
-    wc.lpszClassName = "FPSOverlay";
+    wc.lpszClassName = "FrameCansado";
     RegisterClassEx(&wc);
 
     // ── Janela de configuração (largura fixa; redimensionável verticalmente via WM_GETMINMAXINFO) ──
     const int ch = 820;
     int cx = (GetSystemMetrics(SM_CXSCREEN) - kConfigDlgOuterW) / 2;
     int cy = (GetSystemMetrics(SM_CYSCREEN) - ch) / 2;
-    g_hwnd = CreateWindowEx(0, wc.lpszClassName, "Status Overlay",
+    g_hwnd = CreateWindowEx(0, wc.lpszClassName, "Frame Cansado",
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_THICKFRAME,
         cx, cy, kConfigDlgOuterW, ch, nullptr, nullptr, hInst, nullptr);
     if (!g_hwnd) return 1;
@@ -2571,7 +2531,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
     g_isAdmin = IsRunningAsAdmin();
 
     if (!CreateDeviceD3D(g_hwnd)) {
-        MessageBox(g_hwnd, "Falha na inicialização do DirectX 11.", "Status Overlay", MB_OK | MB_ICONERROR);
+        MessageBox(g_hwnd, "Falha na inicialização do DirectX 11.", "Frame Cansado", MB_OK | MB_ICONERROR);
         CleanupDeviceD3D(); return 1;
     }
 
@@ -2698,7 +2658,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 
             // ── Título ──
             ImGui::SetWindowFontScale(1.4f);
-            ImGui::TextColored(ImVec4(.35f, .78f, 1, 1), "Status Overlay");
+            ImGui::TextColored(ImVec4(.35f, .78f, 1, 1), "Frame Cansado");
             ImGui::SetWindowFontScale(1.0f);
             ImGui::SameLine(); ImGui::TextColored(ImVec4(.45f, .45f, .5f, 1), " %s", APP_VERSION);
 
@@ -2710,7 +2670,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
                 ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(.2f, .9f, .4f, 1));
                 if (ImGui::SmallButton("Update")) {
                     ShellExecuteA(nullptr, "open",
-                        "https://github.com/zRafaX/StatusOverlay/releases/latest",
+                        "https://github.com/zRafaX/FrameCansado/releases/latest",
                         nullptr, nullptr, SW_SHOWNORMAL);
                 }
                 ImGui::PopStyleColor();
@@ -2957,7 +2917,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
 
             // ── HARDWARE ──
             ImGui::Spacing(); ImGui::Spacing();
-            ImGui::TextColored(ImVec4(.55f, .70f, .95f, 1), "HARDWARE DETECTADO");
+            ImGui::TextColored(ImVec4(.55f, .70f, .95f, 1), "PC BATATA DETECTADO");
             ImGui::Spacing();
             ImGui::TextColored(ImVec4(.50f, .50f, .55f, 1), "CPU:  %s", g_cpuName);
             ImGui::TextColored(ImVec4(.50f, .50f, .55f, 1), "GPU:  %s", g_gpuName);
@@ -3808,7 +3768,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE, LPSTR, int)
     ImGui::DestroyContext();
     CleanupDeviceD3D();
     DestroyWindow(g_hwnd);
-    UnregisterClass("FPSOverlay", g_hInstance);
+    UnregisterClass("FrameCansado", g_hInstance);
     ShutdownWMI();
 
     return 0;
@@ -3892,7 +3852,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
             switch (cmd) {
             case IDM_UPDATE:
                 ShellExecuteA(nullptr, "open",
-                    "https://github.com/zRafaX/StatusOverlay/releases/latest",
+                    "https://github.com/zRafaX/FrameCansado/releases/latest",
                     nullptr, nullptr, SW_SHOWNORMAL);
                 break;
             case IDM_SHOW:     g_OvlVisible = true;            break;
