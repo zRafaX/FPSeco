@@ -1438,48 +1438,101 @@ static bool AcquireShutdownPrivilege()
     return ok != FALSE;
 }
 
-// Mesma escolha de reinicialização sempre que um reinício é necessário (pós-instalação / porta / WMI / marcador inválido).
-// MB_SYSTEMMODAL + topmost + foreground para não ser perdida atrás de outras janelas.
+// Mostra aviso de reinicio obrigatorio.
+// A janela sempre aparece na frente das outras.
 static void ForceShowPawnIORestartRequiredDialogThenExit(const wchar_t* situationLead)
 {
     const UINT kMb =
-        MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2 | MB_TOPMOST | MB_SETFOREGROUND | MB_SYSTEMMODAL;
+        MB_YESNO |
+        MB_ICONWARNING |
+        MB_DEFBUTTON2 |
+        MB_TOPMOST |
+        MB_SETFOREGROUND |
+        MB_SYSTEMMODAL;
 
     wchar_t body[2048];
-    _snwprintf_s(body, _TRUNCATE,
+
+    _snwprintf_s(
+        body,
+        _TRUNCATE,
+
         L"%s\n\n"
-        L"Importante: salve seu trabalho em outros aplicativos antes de reiniciar. Dados não salvos podem ser perdidos.\n\n"
-        L"É necessário um reinício completo do sistema antes que o Overlay possa ser executado.\n\n"
-        L"Sim \u2014 reiniciar este PC agora (o Overlay será fechado primeiro)\n"
-        L"Não \u2014 reiniciar mais tarde (o Overlay será fechado; use Iniciar \u2192 Energia \u2192 Reiniciar quando estiver pronto)\n\n",
-        situationLead ? situationLead : L"");
 
-    const int r = MessageBoxW(nullptr, body, L"Software \u2014 Reinício necessário", kMb);
+        L"Importante:\n"
+        L"Salve seu trabalho antes de reiniciar.\n"
+        L"Arquivos nao salvos podem ser perdidos.\n\n"
 
+        L"Um reinicio completo do Windows e necessario "
+        L"antes de abrir o FrameCansado.\n\n"
+
+        L"SIM  - Reiniciar agora\n"
+        L"NAO  - Reiniciar depois\n\n"
+
+        L"O FrameCansado sera fechado.",
+
+        situationLead ? situationLead : L""
+    );
+
+    const int r = MessageBoxW(
+        nullptr,
+        body,
+        L"FrameCansado - Reinicio necessario",
+        kMb
+    );
+
+    // Usuario escolheu reiniciar agora
     if (r == IDYES) {
+
         if (AcquireShutdownPrivilege()) {
-            ExitWindowsEx(EWX_REBOOT | EWX_FORCEIFHUNG,
-                SHTDN_REASON_MAJOR_APPLICATION | SHTDN_REASON_MINOR_INSTALLATION |
-                SHTDN_REASON_FLAG_PLANNED);
+
+            ExitWindowsEx(
+                EWX_REBOOT | EWX_FORCEIFHUNG,
+
+                SHTDN_REASON_MAJOR_APPLICATION |
+                SHTDN_REASON_MINOR_INSTALLATION |
+                SHTDN_REASON_FLAG_PLANNED
+            );
         }
-        MessageBoxW(nullptr,
-            L"Não foi possível iniciar um reinício automático. Reinicie seu PC manualmente "
-            L"(Iniciar \u2192 Energia \u2192 Reiniciar) e inicie o Overlay novamente.",
-            L"Overlay",
-            MB_OK | MB_ICONINFORMATION | MB_TOPMOST | MB_SETFOREGROUND | MB_SYSTEMMODAL);
+
+        // Falha ao reiniciar automaticamente
+        MessageBoxW(
+            nullptr,
+
+            L"Nao foi possivel iniciar o reinicio automatico.\n\n"
+
+            L"Reinicie manualmente:\n\n"
+
+            L"Iniciar\n"
+            L"-> Energia\n"
+            L"-> Reiniciar\n\n"
+
+            L"Depois abra o FrameCansado novamente.",
+
+            L"FrameCansado",
+
+            MB_OK |
+            MB_ICONINFORMATION |
+            MB_TOPMOST |
+            MB_SETFOREGROUND |
+            MB_SYSTEMMODAL
+        );
     }
+
     ExitProcess(0);
 }
 
-// Bloqueia a inicialização até que o Windows tenha reiniciado desde a última instalação/atualização do PawnIO (config.ini [App] + estado auxiliar).
+// Bloqueia a inicializacao ate que o Windows seja reiniciado
+// apos a ultima instalacao ou atualizacao do PawnIO.
 static void CheckPawnIORebootGateOrExit()
 {
     InitConfigPath();
 
     char hex[48] = {};
     ReadIniStr("App", "PawnIOInstallUtcHex", hex, sizeof(hex));
+
     char fileHex[48] = {};
     const bool fileOk = ReadPawnIORebootPendingStateFile(fileHex, sizeof(fileHex));
+
     int rb = ReadIniInt("App", "PawnIORequiresReboot", 0);
 
     if (fileOk) {
@@ -1487,6 +1540,7 @@ static void CheckPawnIORebootGateOrExit()
             WriteIniStr("App", "PawnIOInstallUtcHex", fileHex);
             WriteIniInt("App", "PawnIORequiresReboot", 1);
         }
+
         snprintf(hex, sizeof(hex), "%s", fileHex);
         rb = 1;
     }
@@ -1495,46 +1549,68 @@ static void CheckPawnIORebootGateOrExit()
         return;
 
     FILETIME marker = {};
+
     if (!ReadPawnIOInstallMarkerFileTime(&marker)) {
         ForceShowPawnIORestartRequiredDialogThenExit(
-            L"O Overlay está aguardando um reinício do sistema após a instalação ou atualização do PawnIO, "
-            L"mas o marcador de reinício no config.ini está ausente ou inválido.\n\n"
-            L"Se isso persistir após reiniciar o Windows, exclua PawnIORequiresReboot e "
-            L"PawnIOInstallUtcHex em [App] no config.ini e exclua framecansado-pawnio-reboot.state "
-            L"ao lado de overlay.exe.");
+            L"O Overlay esta aguardando um reinicio do sistema apos a instalacao ou atualizacao do PawnIO.\n\n"
+            L"Porem o marcador de reinicio no config.ini esta ausente ou invalido.\n\n"
+            L"Se isso continuar apos reiniciar o Windows:\n\n"
+            L"1. Remova PawnIORequiresReboot\n"
+            L"2. Remova PawnIOInstallUtcHex\n"
+            L"3. Apague framecansado-pawnio-reboot.state\n\n"
+            L"Esses arquivos ficam ao lado do overlay.exe.");
+
         return;
     }
 
     FILETIME bootApprox = {};
-    const bool haveBootApprox = ApproxLastBootFromUptimeFileTime(&bootApprox);
-    if (haveBootApprox && LastBootUtcPlausiblyAfterPawnIOInstall(&bootApprox, &marker, 3ULL * 10000000ULL)) {
+    const bool haveBootApprox =
+        ApproxLastBootFromUptimeFileTime(&bootApprox);
+
+    if (haveBootApprox &&
+        LastBootUtcPlausiblyAfterPawnIOInstall(
+            &bootApprox,
+            &marker,
+            3ULL * 10000000ULL))
+    {
         ClearPawnIORebootPendingAll();
         return;
     }
 
     FILETIME bootWmi = {};
-    const bool haveBootWmi = WmiQueryLastBootUtcFileTime(&bootWmi);
-    if (haveBootWmi && LastBootUtcPlausiblyAfterPawnIOInstall(&bootWmi, &marker, 45ULL * 10000000ULL)) {
+    const bool haveBootWmi =
+        WmiQueryLastBootUtcFileTime(&bootWmi);
+
+    if (haveBootWmi &&
+        LastBootUtcPlausiblyAfterPawnIOInstall(
+            &bootWmi,
+            &marker,
+            45ULL * 10000000ULL))
+    {
         ClearPawnIORebootPendingAll();
         return;
     }
 
     if (!haveBootApprox && !haveBootWmi) {
         ForceShowPawnIORestartRequiredDialogThenExit(
-            L"O Overlay não pode verificar se este PC foi reiniciado desde a instalação ou atualização do PawnIO "
-            L"(o Windows não conseguiu relatar a hora da última inicialização). Um reinício completo ainda é necessário.");
+            L"O Overlay nao conseguiu verificar se o Windows foi reiniciado "
+            L"apos a instalacao ou atualizacao do PawnIO.\n\n"
+            L"Um reinicio completo do sistema ainda e necessario.");
+
         return;
     }
 
     ForceShowPawnIORestartRequiredDialogThenExit(
-        L"Você deve reiniciar o Windows antes de usar o Overlay.\n\n"
-        L"O PawnIO foi instalado ou atualizado anteriormente e esta sessão ainda não concluiu um reinício completo do sistema.");
+        L"Voce precisa reiniciar o Windows antes de usar o Overlay.\n\n"
+        L"O PawnIO foi instalado ou atualizado anteriormente "
+        L"e esta sessao ainda nao concluiu um reinicio completo.");
 }
 
-// Chamado após PawnIO_setup sair com 0 e o reinício pendente já estar confirmado no config.ini.
+// Chamado apos o PawnIO_setup finalizar com sucesso.
 static void RequireSystemRestartAfterPawnIOSetup()
 {
-    ForceShowPawnIORestartRequiredDialogThenExit(L"O PawnIO foi instalado ou atualizado com sucesso.");
+    ForceShowPawnIORestartRequiredDialogThenExit(
+        L"O PawnIO foi instalado ou atualizado com sucesso.");
 }
 
 // Extrai o PawnIO_setup.exe embutido e executa (-install). Sucesso apenas se o processo sair com código 0.
@@ -1593,75 +1669,166 @@ static bool IsPawnIOOutdatedVsBundled()
     return CompareFileVersionQuad(installedMS, installedLS, bundledMS, bundledLS) < 0;
 }
 
-// Bloqueia até que o PawnIO esteja presente e seja pelo menos tão novo quanto o instalador empacotado, ou sai do aplicativo.
+// Bloqueia ate que o PawnIO esteja instalado e atualizado,
+// Fecha o aplicativo caso o PawnIO nao esteja instalado
+// ou esteja desatualizado.
 static void EnforcePawnIOOrExit()
 {
     CheckPawnIORebootGateOrExit();
 
     for (;;) {
+
+        // PawnIO nao instalado
         if (!IsPawnIOInstalled()) {
+
             int r = MessageBoxW(
                 nullptr,
-                L"O driver PawnIO é necessário para o Overlay.\n\n"
-                L"O LibreHardwareMonitor o usa para temperaturas de CPU e GPU. "
-                L"O aplicativo não pode continuar sem ele.\n\n"
-                L"Clique em OK para instalar o PawnIO.\n"
+
+                L"O driver PawnIO e necessario para o FrameCansado.\n\n"
+
+                L"O LibreHardwareMonitor usa o PawnIO para ler "
+                L"temperaturas da CPU e GPU.\n\n"
+
+                L"O aplicativo nao pode continuar sem ele.\n\n"
+
+                L"Clique em OK para instalar.\n"
                 L"Clique em Cancelar para sair.",
-                L"Overlay \u2014 PawnIO necessário",
-                MB_OKCANCEL | MB_ICONWARNING | MB_TOPMOST);
+
+                L"FrameCansado - PawnIO necessario",
+
+                MB_OKCANCEL | MB_ICONWARNING | MB_TOPMOST
+            );
+
             if (r != IDOK)
                 ExitProcess(1);
+
+            // Executa instalador
             if (!ExtractAndRunPawnIOSetup()) {
-                MessageBoxW(nullptr,
-                    L"A instalação do PawnIO não foi concluída com sucesso. O instalador saiu com um erro "
-                    L"(por exemplo, uma compilação existente do PawnIO deve ser removida primeiro).\n\n"
-                    L"Desinstale o PawnIO em Config do Windows \u2192 Aplicativos \u2192 Aplicativos instalados e clique em OK novamente aqui.",
-                    L"Overlay", MB_OK | MB_ICONERROR | MB_TOPMOST);
+
+                MessageBoxW(
+                    nullptr,
+
+                    L"A instalacao do PawnIO falhou.\n\n"
+
+                    L"O instalador encontrou um erro.\n"
+                    L"Uma versao antiga pode precisar ser removida primeiro.\n\n"
+
+                    L"Para remover:\n\n"
+
+                    L"Configuracoes do Windows\n"
+                    L"-> Aplicativos\n"
+                    L"-> Aplicativos instalados\n\n"
+
+                    L"Depois tente novamente.",
+
+                    L"FrameCansado",
+
+                    MB_OK | MB_ICONERROR | MB_TOPMOST
+                );
+
                 continue;
             }
+
+            // Salva reboot pendente
             if (!CommitPawnIORebootPendingToIni()) {
-                MessageBoxW(nullptr,
-                    L"O Overlay não pôde salvar o requisito de reinicialização (config.ini ou "
-                    L"framecansado-pawnio-reboot.state ao lado de overlay.exe). Verifique se a pasta pode ser gravada "
-                    L"e tente instalar o PawnIO novamente.",
-                    L"Overlay",
-                    MB_OK | MB_ICONERROR | MB_TOPMOST);
+
+                MessageBoxW(
+                    nullptr,
+
+                    L"O FrameCansado nao conseguiu salvar "
+                    L"o estado de reinicio necessario.\n\n"
+
+                    L"Verifique se a pasta possui permissao "
+                    L"de escrita e tente novamente.",
+
+                    L"FrameCansado",
+
+                    MB_OK | MB_ICONERROR | MB_TOPMOST
+                );
+
                 ExitProcess(1);
             }
+
             RequireSystemRestartAfterPawnIOSetup();
         }
 
+        // PawnIO desatualizado
         if (IsPawnIOOutdatedVsBundled()) {
+
             int r = MessageBoxW(
                 nullptr,
-                L"Seu driver PawnIO é mais antigo que a versão incluída no Overlay.\n\n"
-                L"Um PawnIO desatualizado pode quebrar o LibreHardwareMonitor (temperaturas ausentes ou erradas). "
-                L"Você deve atualizar para continuar.\n\n"
-                L"Clique em OK para atualizar agora (substitui a instalação existente).\n"
+
+                L"Seu PawnIO esta desatualizado.\n\n"
+
+                L"Versoes antigas podem causar problemas "
+                L"no LibreHardwareMonitor.\n\n"
+
+                L"Temperaturas podem aparecer erradas "
+                L"ou nao aparecer.\n\n"
+
+                L"Voce precisa atualizar para continuar.\n\n"
+
+                L"Clique em OK para atualizar.\n"
                 L"Clique em Cancelar para sair.",
-                L"Overlay \u2014 Atualização do PawnIO necessária",
-                MB_OKCANCEL | MB_ICONWARNING | MB_TOPMOST);
+
+                L"FrameCansado - Atualizacao necessaria",
+
+                MB_OKCANCEL | MB_ICONWARNING | MB_TOPMOST
+            );
+
             if (r != IDOK)
                 ExitProcess(1);
+
+            // Atualiza PawnIO
             if (!ExtractAndRunPawnIOSetup()) {
-                MessageBoxW(nullptr,
-                    L"A atualização do PawnIO não foi concluída com sucesso. O instalador saiu com um erro "
-                    L"(por exemplo, a versão antiga deve ser removida antes de instalar novamente).\n\n"
-                    L"Desinstale o PawnIO em Config do Windows \u2192 Aplicativos \u2192 Aplicativos instalados e clique em OK novamente aqui.",
-                    L"Overlay", MB_OK | MB_ICONERROR | MB_TOPMOST);
+
+                MessageBoxW(
+                    nullptr,
+
+                    L"A atualizacao do PawnIO falhou.\n\n"
+
+                    L"O instalador encontrou um erro.\n"
+                    L"A versao antiga pode precisar ser removida primeiro.\n\n"
+
+                    L"Para remover:\n\n"
+
+                    L"Configuracoes do Windows\n"
+                    L"-> Aplicativos\n"
+                    L"-> Aplicativos instalados\n\n"
+
+                    L"Depois tente novamente.",
+
+                    L"FrameCansado",
+
+                    MB_OK | MB_ICONERROR | MB_TOPMOST
+                );
+
                 continue;
             }
+
+            // Salva reboot pendente
             if (!CommitPawnIORebootPendingToIni()) {
-                MessageBoxW(nullptr,
-                    L"O Overlay não pôde salvar o requisito de reinicialização (config.ini ou "
-                    L"framecansado-pawnio-reboot.state ao lado de overlay.exe). Verifique se a pasta pode ser gravada "
-                    L"e tente atualizar o PawnIO novamente.",
-                    L"Overlay",
-                    MB_OK | MB_ICONERROR | MB_TOPMOST);
+
+                MessageBoxW(
+                    nullptr,
+
+                    L"O FrameCansado nao conseguiu salvar "
+                    L"o estado de reinicio necessario.\n\n"
+
+                    L"Verifique se a pasta possui permissao "
+                    L"de escrita e tente novamente.",
+
+                    L"FrameCansado",
+
+                    MB_OK | MB_ICONERROR | MB_TOPMOST
+                );
+
                 ExitProcess(1);
             }
+
             RequireSystemRestartAfterPawnIOSetup();
         }
+
         break;
     }
 }
