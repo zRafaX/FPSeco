@@ -24,7 +24,7 @@ Baixe a versão mais recente do **FPSeco**:
 
 | Layout configuração |
 |----------------|
-|  ![02](https://github.com/zRafaX/StatusOverlay/blob/main/assets/01.png?raw=true) |
+|  ![02](https://github.com/zRafaX/StatusOverlay/blob/main/assets/Painel_config.png?raw=true) |
 
 ## ⚙️ Configurações (config.ini)
 
