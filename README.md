@@ -1,8 +1,8 @@
-# FrameCansado – Monitor de desempenho (FPS)
+# FPSeco – Monitor de desempenho (FPS)
 
 Dep: LibreHardwareMonitor (Open Source)
 
-**FrameCansado** é um overlay leve para Windows que exibe em tempo real:
+**FPSeco** é um overlay leve para Windows que exibe em tempo real:
 - FPS do jogo (DirectX 9/10/11/12, Vulkan e OpenGL)
 - Uso e temperatura da CPU
 - Uso e temperatura da GPU
@@ -12,11 +12,11 @@ Dep: LibreHardwareMonitor (Open Source)
 
 ## ⬇️ Download
 
-Baixe a versão mais recente do **FrameCansado**:
+Baixe a versão mais recente do **FPSeco**:
 
-- Windows 10/11: [Download FrameCansado](https://github.com/zRafaX/FrameCansado/releases/latest)
+- Windows 10/11: [Download FPSeco](https://github.com/zRafaX/FPSeco/releases/latest)
 
-> Extraia o `.zip` e execute `FrameCansado.exe`.
+> Extraia o `.zip` e execute `FPSeco.exe`.
 
 | Layout padrão |
 |----------------|
